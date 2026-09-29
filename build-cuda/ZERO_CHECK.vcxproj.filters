@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\CMakeFiles\0df60a2d0e32f79a9f528fd7e9a2f28f\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\benchmarks\CMakeLists.txt">
+      <Filter>Buildsystem Input Files\benchmarks</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\_deps\googletest-src\CMakeLists.txt">
+      <Filter>Buildsystem Input Files\build-cuda\_deps\googletest-src</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\_deps\googletest-src\googlemock\CMakeLists.txt">
+      <Filter>Buildsystem Input Files\build-cuda\_deps\googletest-src\googlemock</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\_deps\googletest-src\googlemock\cmake\gmock.pc.in">
+      <Filter>Buildsystem Input Files\build-cuda\_deps\googletest-src\googlemock\cmake</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\_deps\googletest-src\googlemock\cmake\gmock_main.pc.in">
+      <Filter>Buildsystem Input Files\build-cuda\_deps\googletest-src\googlemock\cmake</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\_deps\googletest-src\googletest\CMakeLists.txt">
+      <Filter>Buildsystem Input Files\build-cuda\_deps\googletest-src\googletest</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\_deps\googletest-src\googletest\cmake\Config.cmake.in">
+      <Filter>Buildsystem Input Files\build-cuda\_deps\googletest-src\googletest\cmake</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\_deps\googletest-src\googletest\cmake\gtest.pc.in">
+      <Filter>Buildsystem Input Files\build-cuda\_deps\googletest-src\googletest\cmake</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\_deps\googletest-src\googletest\cmake\gtest_main.pc.in">
+      <Filter>Buildsystem Input Files\build-cuda\_deps\googletest-src\googletest\cmake</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\_deps\googletest-src\googletest\cmake\internal_utils.cmake">
+      <Filter>Buildsystem Input Files\build-cuda\_deps\googletest-src\googletest\cmake</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\examples\CMakeLists.txt">
+      <Filter>Buildsystem Input Files\examples</Filter>
+    </None>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\CMakeLists.txt">
+      <Filter>Buildsystem Input Files\tests</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{6E62D96D-9C59-3A3F-A70A-2B89B9575FE9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{31877F91-2BB1-3034-A421-5557EF7FB8FA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buildsystem Input Files\benchmarks">
+      <UniqueIdentifier>{60DBDA1E-03DF-3C3E-AC30-C9EE3976DAE1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buildsystem Input Files\build-cuda\_deps\googletest-src">
+      <UniqueIdentifier>{0ABDF037-8776-3F1F-952B-7AF7568ADC30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buildsystem Input Files\build-cuda\_deps\googletest-src\googlemock">
+      <UniqueIdentifier>{B6303059-2A04-3972-9E21-846B6A2AE5E1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buildsystem Input Files\build-cuda\_deps\googletest-src\googlemock\cmake">
+      <UniqueIdentifier>{CD21DC73-D637-367A-853E-231E355C60BF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buildsystem Input Files\build-cuda\_deps\googletest-src\googletest">
+      <UniqueIdentifier>{5A0B022C-CE91-37CC-A766-CB48835F9E3D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buildsystem Input Files\build-cuda\_deps\googletest-src\googletest\cmake">
+      <UniqueIdentifier>{CFC71511-8F8A-30D6-BB9F-2CAAEF834236}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buildsystem Input Files\examples">
+      <UniqueIdentifier>{DD4F2CBD-3AB4-3E86-858E-20C15EF4746E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buildsystem Input Files\tests">
+      <UniqueIdentifier>{39D92B6B-56AD-39E1-BCFB-673EA9181B6C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

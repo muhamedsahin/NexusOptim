@@ -1,0 +1,8 @@
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_sgd.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\tests\nexus_optim_tests.dir\Release\test_sgd.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_adam.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\tests\nexus_optim_tests.dir\Release\test_adam.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_adamw.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\tests\nexus_optim_tests.dir\Release\test_adamw.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_algorithms.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\tests\nexus_optim_tests.dir\Release\test_algorithms.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_lr_schedulers.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\tests\nexus_optim_tests.dir\Release\test_lr_schedulers.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_gradient_clipping.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\tests\nexus_optim_tests.dir\Release\test_gradient_clipping.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_against_pytorch_reference.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\tests\nexus_optim_tests.dir\Release\test_against_pytorch_reference.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_cuda.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\tests\nexus_optim_tests.dir\Release\test_cuda.obj

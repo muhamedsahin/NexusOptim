@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\CMakeFiles\0df60a2d0e32f79a9f528fd7e9a2f28f\NightlyMemoryCheck.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\CMakeFiles\NightlyMemoryCheck" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{6E62D96D-9C59-3A3F-A70A-2B89B9575FE9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

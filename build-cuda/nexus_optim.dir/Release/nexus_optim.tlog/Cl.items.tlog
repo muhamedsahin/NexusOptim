@@ -1,0 +1,7 @@
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\src\core\thread_pool.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\nexus_optim.dir\Release\thread_pool.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\src\core\optimizer_state.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\nexus_optim.dir\Release\optimizer_state.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\src\simd\simd_dispatch.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\nexus_optim.dir\Release\simd_dispatch.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\src\simd\avx2_kernels.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\nexus_optim.dir\Release\avx2_kernels.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\src\simd\neon_kernels.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\nexus_optim.dir\Release\neon_kernels.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\src\algorithms\instantiate.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\nexus_optim.dir\Release\instantiate.obj
+C:\Users\muham\Desktop\Nexus\lib\NexusOptim\src\simd\avx512_kernels.cpp;C:\Users\muham\Desktop\Nexus\lib\NexusOptim\build-cuda\nexus_optim.dir\Release\avx512_kernels.obj

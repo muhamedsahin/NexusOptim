@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<title>NexusOptim Ayrıntılı Teknik Kılavuz</title>
+<style>
+  @page { size: A4; margin: 15mm 14mm 16mm 14mm; }
+  body { margin: 0; color: #1c1917; font-family: "Segoe UI", Calibri, sans-serif; font-size: 10.4pt; line-height: 1.46; }
+  h1,h2,h3,h4 { font-family: "Segoe UI Semibold","Segoe UI",sans-serif; line-height: 1.22; page-break-after: avoid; }
+  h1 { font-size: 20pt; margin: 0 0 8px; }
+  h2 { font-size: 14.5pt; margin: 20px 0 8px; border-top: 2.5px solid #9a3412; padding-top: 8px; }
+  h3 { font-size: 12pt; margin: 14px 0 6px; color: #9a3412; }
+  h4 { font-size: 11pt; margin: 10px 0 4px; }
+  p { margin: 0 0 8px; }
+  ul,ol { margin: 0 0 8px; padding-left: 18px; }
+  li { margin: 0 0 3px; }
+  code,pre { font-family: Consolas,"Cascadia Mono",monospace; }
+  code { font-size: 9pt; background: #f5f0eb; padding: 0 3px; border-radius: 3px; }
+  pre { background: #1c1917; color: #fafaf9; padding: 10px 12px; border-radius: 6px; font-size: 8.2pt; line-height: 1.38; white-space: pre-wrap; page-break-inside: avoid; margin: 6px 0 10px; }
+  .c { color: #a8a29e; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 9pt; page-break-inside: avoid; }
+  th,td { border: 1px solid #d6d3d1; padding: 4px 6px; vertical-align: top; text-align: left; }
+  th { background: #ffedd5; }
+  .cover { min-height: 250mm; page-break-after: always; background: linear-gradient(165deg,#431407 0%,#9a3412 55%,#fdba74 100%); color: #fff7ed; padding: 26mm 16mm; margin: -15mm -14mm 0; }
+  .cover h1 { color: #fff; font-size: 32pt; }
+  .badge { display: inline-block; border: 1px solid rgba(255,255,255,.4); padding: 3px 8px; border-radius: 99px; margin: 0 6px 6px 0; }
+  .note,.warn { border-left: 4px solid #c2410c; background: #fff7ed; padding: 8px 10px; margin: 8px 0 12px; page-break-inside: avoid; }
+  .warn { border-color: #b45309; background: #fef3c7; }
+  .formula { background: #fafaf9; border: 1px solid #e7e5e4; padding: 8px 10px; margin: 6px 0 10px; page-break-inside: avoid; }
+  .toc { page-break-after: always; }
+  .small { color: #57534e; font-size: 9pt; }
+  .flow { font-family: Consolas,monospace; font-size: 8.4pt; background: #fafaf9; border: 1px solid #e7e5e4; padding: 10px; white-space: pre; page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="badge">Sürüm 1.0</div><div class="badge">C++20</div><div class="badge">AVX2 / AVX-512 / CUDA</div>
+  <h1>NexusOptim<br/>Ayrıntılı Kılavuz</h1>
+  <p style="font-size:14pt;max-width:150mm;">Kütüphanenin nasıl çalıştığı, her API’nin ve her parametrenin ne işe yaradığı, optimizer formüllerinin eleman eleman hesabı, içeride yapılan hız işleri, ölçülmüş benchmark’lar ve kopyalanabilir örnekler.</p>
+  <p style="margin-top:36mm;">Bu belge ikinci baskıdır. Birinci PDF özetti. Bu baskı kaynak koddaki <code style="background:#7c2d12;color:#fff;">Options</code> alanlarını, SIMD/CUDA kararlarını ve sayısal yürüyüşleri tek tek açar.<br/><br/>Tek giriş: <code style="background:#7c2d12;color:#fff;">#include &lt;nexus_optim/nexus_optim.hpp&gt;</code></p>
+</section>
+
+<section class="toc">
+<h2 style="border:none;">İçindekiler</h2>
+<ol>
+<li>Bu kütüphane eğitim döngüsünün neresinde durur</li>
+<li>Bir adım, bellek üzerinde neye dokunur</li>
+<li>Hız için kodda ne yapıldı</li>
+<li>Benchmark’lar: nasıl ölçüldü, sayılar ne der</li>
+<li>Kurulum ve ilk çağrı</li>
+<li>Ortak API: grup, adım, sıfırlama, durum</li>
+<li>Öğrenme hızı ile weight decay’in iki yeri</li>
+<li>SGD, momentum, Nesterov — parametre parametre ve sayısal örnek</li>
+<li>Adagrad, RMSProp, Adadelta</li>
+<li>Adam ve AdamW — kapalı formun elle hesabı</li>
+<li>NAdam, RAdam, AdaBelief</li>
+<li>LAMB, LARS, Lion</li>
+<li>Lookahead</li>
+<li>Yedi zamanlayıcının her argümanı</li>
+<li>Gradyan fonksiyonları</li>
+<li>FP16, BF16, CUDA, MatrixFlash</li>
+<li>Hazır reçeteler</li>
+<li>Hatalar ve kontrol listesi</li>
+</ol>
+</section>
+
+<h2>1. Bu kütüphane eğitim döngüsünün neresinde durur</h2>
+<p>Nexus yığınında her kütüphanenin tek işi vardır. NexusOptim’in işi parametre güncellemesidir. Aşağıdaki işler onun dışındadır ve bu başlıklarda fonksiyon olarak da yoktur:</p>
+<table>
+<tr><th>İstenen iş</th><th>Sahibi</th><th>NexusOptim ne görür</th></tr>
+<tr><td>Matris çarpımı, broadcast, GPU GEMM</td><td>MatrixFlash Pro</td><td>Yalnızca <code>float*</code> ve uzunluk. <code>matmul</code> çağrılmaz.</td></tr>
+<tr><td>Veri kümesi, batch, karıştırma</td><td>MatrixData / NexusData</td><td>Hiçbir şey. Batch optimizer’a girmez.</td></tr>
+<tr><td>Katman tanımı, <code>forward</code></td><td>NexusModel</td><td>Modelin sahip olduğu parametre işaretçileri.</td></tr>
+<tr><td>Kayıp ve <code>backward</code></td><td>NexusLoss</td><td>Dolu gradyan tamponu.</td></tr>
+<tr><td>Epoch döngüsü, dosya, günlük</td><td>NexusTrain</td><td><code>zero_grad</code>, <code>step</code>, <code>scheduler.step</code>, isteğe bağlı <code>state_dict</code>.</td></tr>
+</table>
+<p>Bir adımın doğru sırası sabittir. Sırayı bozmak sayısal sonucu bozar, derleyici hatası vermez:</p>
+<ol>
+<li><code>zero_grad()</code> — biriktirme yapmıyorsanız. Mikro-batch biriktiriyorsanız bunu N mikro-batch’te bir kez çağırırsınız.</li>
+<li>İleri geçiş ve geri yayılım. Bu sırada gradyan tamponuna ekleme yapılır. Optimizer henüz çalışmaz.</li>
+<li>İsteğe bağlı <code>gradient_centralization_</code>, sonra <code>clip_grad_norm_</code> veya <code>scale_gradients_</code>.</li>
+<li><code>optimizer.step()</code> — parametre değişir, momentler güncellenir, gradyana dokunulmaz.</li>
+<li><code>scheduler.step()</code> — bir sonraki adımın öğrenme hızını yazar. Bu adımın hızını değiştirmez.</li>
+</ol>
+<div class="note"><code>step()</code> kayıp değeri görmez. Plateau zamanlayıcısı dışında hiçbir optimizer “loss iyileşti mi” diye sormaz. Loss’u siz tutar, isterseniz <code>ReduceLROnPlateau::step(loss)</code> ile iletirsiniz.</div>
+
+<h2>2. Bir adım, bellek üzerinde neye dokunur</h2>
+<div class="flow">sizin vektörünüz / MatrixFlash tensörü
+  param[i]  ── okunur ve yerinde yazılır
+  grad[i]   ── yalnız okunur (kırpma fonksiyonları dışında)
+
+optimizer’ın kendi tamponu (kurucuda bir kez ayrılır)
+  SGD düz             : ek tampon yok
+  momentum / Nesterov : hız v
+  Adagrad             : kümülatif kare s
+  RMSProp             : kare ortalama, isteğe bağlı momentum ve merkez
+  Adadelta            : E[g²] ve E[Δ²]
+  Adam / AdamW        : m, v, isteğe bağlı v_max
+  NAdam / RAdam       : m, v
+  AdaBelief           : m, s
+  LAMB                : m, v, geçici u (kayda girmez)
+  LARS                : isteğe bağlı hız
+  Lion                : yalnızca m
+  Lookahead           : yavaş kopya
+  FP16 / BF16         : ayrıca FP32 master parametre ve FP32 gradyan çevirisi</div>
+<p>İşaretçiler ödünçtür. Optimizer’ı yok etmeden parametre vektörünü <code>std::vector</code> atamasıyla değiştirirseniz (<code>g = std::vector&lt;float&gt;(...)</code>) işaretçi eski belleğe düşer. Yerinde yazın: <code>g[i] = ...</code> veya <code>std::fill</code>.</p>
+<p>Grup sayısı eğitim boyunca sabit kalmalıdır. Zamanlayıcı, <code>learning_rate</code> alanının adresini kurucuda kaydeder. <code>param_groups().push_back</code> vektörü taşırsa o adres geçersiz olur.</p>
+
+<h2>3. Hız için kodda ne yapıldı</h2>
+<p>Hedef, gradyan hazır olduktan sonra parametreyi bellek bant genişliğine yakın sürede güncellemektir. Bunun için sıcak yolda şunlar bilinçli olarak yapılmadı: sanal fonksiyon, <code>std::function</code>, <code>new</code>, geçici tensör, moment güncellemesiyle parametre yazmasının ayrı döngülere bölünmesi.</p>
+
+<h3>3.1 Derleme zamanı seçim</h3>
+<p><code>step()</code> şöyle yazılıdır: <code>static_cast&lt;Derived*&gt;(this)-&gt;step_impl()</code>. Bu, Curiously Recurring Template Pattern’dir. Çağrı, derleyici için düz bir fonksiyon çağrısıdır. Hangi optimizer olduğu çalışma anında bir vtable’dan okunmaz. Zamanlayıcılar sanal tutuldu; onlar milyonlarca elemana değil, adım başına bir kez koşar.</p>
+<p>Kesinlik de şablondur. <code>if constexpr (std::is_same_v&lt;ScalarT, float&gt;)</code> ile double ve float yolları aynı kaynakta durur ama kullanılan yolun karşıtı koda hiç girmez. FP16 depolamada hesap FP32 master üzerinde yürür.</p>
+
+<h3>3.2 Katsayılar döngünün dışında</h3>
+<p>Adam’da <code>1 - beta1^t</code> bir kez, <code>double</code> olarak hesaplanır ve çekirdeğe <code>inv_bc1</code> olarak girer. Eleman döngüsünde <code>pow</code> yoktur. Aynı şey NAdam’ın μ çarpımı, RAdam’ın ρ düzeltmesi ve Adagrad’ın sönmüş öğrenme hızı için geçerlidir. Çekirdek yalnızca toplama, çarpma, karekök ve bölme görür.</p>
+
+<h3>3.3 Tek geçiş ve fused çekirdek</h3>
+<p>Naif Adam dört bellek turu ister: m’yi yaz, v’yi yaz, düzeltmeyi oku, parametreyi yaz. NexusOptim bunları tek döngüde yapar. Bir eleman için m, v ve p kayıtta üretilir, ara sonuç DRAM’e indirilmez. CUDA tarafında da aynı füzyon vardır: ayrı <code>add</code> ve <code>sqrt</code> çekirdekleri yerine tek <code>adam_vec4_kernel</code>.</p>
+
+<h3>3.4 SIMD</h3>
+<table>
+<tr><th>Yol</th><th>Ne işler</th><th>Not</th></tr>
+<tr><td>AVX2</td><td>8 float veya 4 double</td><td>Adam’da 4× açılım: bir turda 32 float. Yükleme <code>_mm256_loadu_ps</code>, yani çağıranın hizası şart değildir. FMA kullanılır.</td></tr>
+<tr><td>AVX-512</td><td>16 float, SGD ve Adam</td><td>Derlenir. CPUID AVX-512F ve işletim sisteminin ZMM iznini görmezse çağrılmaz. Bu makinede çağrılmadı.</td></tr>
+<tr><td>NEON</td><td>4 float, SGD ve Adam</td><td>Yalnızca ARM derlemesi. Windows’ta fonksiyon skaler yola düşer ve hiç seçilmez.</td></tr>
+<tr><td>Skaler</td><td>1 eleman</td><td>Kuyruk (8’e bölünmeyen sonlar) ve <code>force_simd_level(Scalar)</code>. MSVC’de <code>#pragma loop(no_vector)</code> ile otomatik vektörleşme kapatıldı ki “skaler” ölçüm gerçekten skaler olsun.</td></tr>
+</table>
+<p>Durum tamponları 64 bayta hizalıdır (<code>AlignedBuffer</code>, Windows’ta <code>_aligned_malloc</code>). Kullanıcı tensörü hizasız olabilir; bu yüzden kullanıcı verisinde hizalı yük dayatılmaz. Bizim tamponun hizası, işlemci önbellek satırının başından okumayı kolaylaştırır.</p>
+
+<h3>3.5 İş parçacığı</h3>
+<p><code>kParallelGrain = 50000</code>. Bunun altındaki tensörlerde uyandırma, kazançtan pahalıdır; çağıran iş parçacığı tek başına biter. Üstünde süreç boyunca yaşayan bir havuz devreye girer. Havuz optimizer kurucusuna ilk dokunuşta açılır, yani ilk <code>step()</code> iş parçacığı yaratmaz.</p>
+<p>Bölme 64 elemanın katına yuvarlanır. Böylece komşu iş parçacıkları aynı önbellek satırına yazmaz (false sharing). İşçiler bir adımın ardından kısa süre döner, yeni adım gelmezse uyur. Böylece ardışık eğitim adımları her seferinde işletim sisteminden uyanmak zorunda kalmaz.</p>
+<p>LAMB ve LARS bu bölmeyi “her parça kendi güven oranını hesaplasın” diye kullanmaz. Moment güncellemesi paraleldir, kareler toplanır, güven oranı tek sayıdır, ardından uygulama yine paraleldir. İki geçiş sıralıdır; havuz kendini iç içe çağırmaz.</p>
+
+<h3>3.6 CUDA</h3>
+<ul>
+<li>sm_86 (RTX 3070) için <code>-O3</code> ile derlenir.</li>
+<li>Izgara, akış çok işlemcisi sayısının 32 katına kadar çıkar. Grid-stride döngüsü sabit ızgarayla her uzunluğu tarar.</li>
+<li>SGD, Adam ve Lion’da iş parçacığı 4 float birden taşır. Sonunda 4’e bölünmeyen kuyruk 32 iş parçacıklı skaler çekirdeğe kalır.</li>
+<li>Dört non-blocking stream vardır. <code>step()</code> bitmeden stream senkronize edilir; fonksiyon döndüğünde parametre okunabilir. Bu senkron, 1 milyon eleman gibi küçük işlerde sürenin büyük kısmıdır.</li>
+<li>LAMB/LARS normu önce warp içinde, sonra blok içinde toplanır, bloğun tek temsilcisi <code>atomicAdd(double)</code> yapar. Eleman başına atomik yoktur.</li>
+</ul>
+
+<h2>4. Benchmark’lar</h2>
+<h3>Makine ve komut</h3>
+<p>Windows, Release, 15 yardımcı iş parçacığı. CPU AVX2 görür, AVX-512 çalıştırmaz. GPU NVIDIA GeForce RTX 3070 Laptop, 8 GB, compute capability 8.6. CUDA 13.4, mimari 86, çekirdek <code>-O3</code>.</p>
+<pre>build\benchmarks\Release\bench_adam.exe 1000000 40
+build\benchmarks\Release\bench_sgd.exe
+build-cuda\benchmarks\Release\bench_cpu_vs_gpu.exe</pre>
+<p>AdamW “28 bayt/eleman” şöyle sayılır: parametre okunur ve yazılır (8), gradyan okunur (4), m okunur ve yazılır (8), v okunur ve yazılır (8). SGD “12 bayt”tır: parametre 8, gradyan 4. AMSGrad veya weight decay ek yük bindirmez çünkü aynı satırlar zaten okunuyordur. Süre, ısınma adımından sonraki turların ortalamasıdır.</p>
+<h3>Sayılar</h3>
+<table>
+<tr><th>İş</th><th>Yol</th><th>Süre</th><th>Hesaplanan bant</th></tr>
+<tr><td>AdamW, 1 000 000</td><td>skaler, çok iş parçacığı</td><td>1712 µs/adım</td><td>16.4 GB/s</td></tr>
+<tr><td>AdamW, 1 000 000</td><td>AVX2</td><td>899 µs/adım</td><td>31.1 GB/s, skalere göre 1.90×</td></tr>
+<tr><td>AdamW, 8 000 000</td><td>skaler</td><td>12.4 ms/adım</td><td>18.1 GB/s</td></tr>
+<tr><td>AdamW, 8 000 000</td><td>AVX2</td><td>9.3 ms/adım</td><td>24.1 GB/s, skalere göre 1.33×</td></tr>
+<tr><td>SGD, 1 000 000</td><td>AVX2</td><td>176 µs/adım</td><td>68.2 GB/s</td></tr>
+<tr><td>AdamW, 1 048 576</td><td>AVX2, CUDA’lı ikili</td><td>769 µs/adım</td><td>çok çekirdek</td></tr>
+<tr><td>AdamW, 1 048 576</td><td>RTX 3070, stream senkronlu</td><td>1168 µs/adım</td><td>yaklaşık 25 GB/s etkin</td></tr>
+</table>
+<p>Bu tabloyu şöyle okuyun. SGD karekök ve bölme içermez, bu yüzden aynı makinede AdamW’den belirgin hızlıdır ve 68 GB/s’e çıkar. AdamW’de her eleman <code>sqrt</code> ve bölme bekler; 8 milyon elemanda iki CPU yolu da belleğe dayanır, AVX2’nin kazancı 1.33×’e iner. 1 milyonluk GPU adımı çekirdekten çok “işi kuyruğa koy ve bitmesini bekle” maliyetidir. Milyarlarca parametrede aynı fused çekirdek bant genişliğine oturur; bu laptop ölçümünde o boy koşturulmadı çünkü momentlerle birlikte onlarca gigabayt gerekir.</p>
+<div class="warn">“GPU her zaman daha hızlıdır” bu kütüphane için doğru cümle değildir. Küçük ve orta parametre sayısında, senkronlu bir elementwise adımda AVX2 önde olabilir. GPU’yu parametreler zaten cihazda duruyorsa ve tensör büyükse seçin. Her adımda host’a kopyalamak ölçümü anlamsız kılar.</div>
+<p>Doğruluk benchmark’ı ayrıdır: 40 test geçer. SIMD ile skaler formül 2e-5 bağıl, CUDA ile CPU 2e-4 bağıl, kapalı form SGD/Adam elle hesaplanan değerle 1e-5 içinde örtüşür. Ölçülen boylar 7, 8, 17, 1024, 10007 ve ayrıca 200 000 elemanlık paralel aralıktır.</p>
+
+<h2>5. Kurulum ve ilk çağrı</h2>
+<pre>cmake -S . -B build
+cmake --build build --config Release
+build\examples\Release\basic_sgd_example.exe
+build\examples\Release\train_loop_with_nexus_optim.exe
+build\tests\Release\nexus_optim_tests.exe</pre>
+<table>
+<tr><th>CMake seçeneği</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>NEXUS_OPTIM_WITH_CUDA</code></td><td>OFF</td><td>Açıkken <code>.cu</code> bağlanır ve <code>Device::CUDA</code> adımı çalışır. Kapalıyken CUDA tensörü açık hata verir, CPU kodu hiç CUDA istemez.</td></tr>
+<tr><td><code>CMAKE_CUDA_ARCHITECTURES</code></td><td>86</td><td>Hedef GPU. 3070 için 86 doğrudur. Başka kartta <code>nvidia-smi</code> compute capability değerini yazın.</td></tr>
+<tr><td><code>NEXUS_OPTIM_ENABLE_AVX512</code></td><td>ON</td><td>OFF ise AVX-512 nesnesi üretilmez, dağıtım AVX2’de durur.</td></tr>
+<tr><td><code>NEXUS_OPTIM_BUILD_TESTS</code></td><td>ON</td><td>GoogleTest indirilir ve <code>nexus_optim_tests</code> kurulur.</td></tr>
+<tr><td><code>NEXUS_OPTIM_BUILD_BENCHMARKS</code></td><td>ON</td><td><code>bench_sgd</code>, <code>bench_adam</code>, <code>bench_cpu_vs_gpu</code>.</td></tr>
+<tr><td><code>NEXUS_OPTIM_WARNINGS_AS_ERRORS</code></td><td>ON</td><td>Kütüphane C++ dosyalarında uyarı derlemeyi kırar. CUDA çevirisine uygulanmaz.</td></tr>
+<tr><td><code>NEXUS_MATRIXFLASH_INCLUDE</code></td><td>boş</td><td>Doluysa adaptör başlığının aradığı <code>matrix_pro/</code> yolu eklenir.</td></tr>
+</table>
+<pre>cmake -S . -B build-cuda -DNEXUS_OPTIM_WITH_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86
+cmake --build build-cuda --config Release
+build-cuda\tests\Release\nexus_optim_tests.exe --gtest_filter=Cuda.*</pre>
+
+<h2>6. Ortak API</h2>
+<p>Bütün somut sınıflar <code>OptimizerBase&lt;Türev, ScalarT&gt;</code> üzerinden aynı yüzeyi verir. Şablon yazılmazsa <code>float</code> olur. <code>SGD&lt;&gt;</code> ile <code>SGD&lt;float&gt;</code> aynı tiptir. Kopya yoktur, taşıma vardır.</p>
+<table>
+<tr><th>Çağrı</th><th>Ne işe yarar</th><th>Ne yapmaz</th></tr>
+<tr><td><code>step()</code></td><td>Bir güncelleme. Momentleri ve parametreyi yazar.</td><td>Gradyanı sıfırlamaz. Loss okumaz. Ayırma yapmaz.</td></tr>
+<tr><td><code>zero_grad(bool set_to_none = true)</code></td><td>Gradyan tamponunu bayt bayt sıfırlar. CUDA’da <code>cudaMemset</code>.</td><td>İşaretçiyi null yapamaz; bellek sizindir. Bayrak PyTorch çağrı uyumu içindir, iki mod da sıfırlar.</td></tr>
+<tr><td><code>param_groups()</code></td><td>Grup vektörü. Zamanlayıcı <code>learning_rate</code> alanına yazar. Kırpma fonksiyonları bunu ister.</td><td>Vektörü büyütmeyin.</td></tr>
+<tr><td><code>step_count()</code></td><td>Bitmiş adım sayısı. İlk <code>step</code> sonrası 1. Bias düzeltmesi bu sayıyı kullanır.</td><td>Zamanlayıcının epoch’u değildir. Onlar ayrı sayaç tutar.</td></tr>
+<tr><td><code>state_dict()</code></td><td>Algoritma adı, adım, grup hızları, moment baytları.</td><td>Parametreyi saklamaz. Parametreyi model checkpoint’i saklar.</td></tr>
+<tr><td><code>load_state_dict</code></td><td>Momentleri ve sayacı geri yazar.</td><td>Tensör yerleşimi aynı olmalıdır. Adam kaydı AdamW’ye yüklenmez.</td></tr>
+</table>
+<p><code>detected_simd_level()</code>, <code>simd_level_name</code>, <code>version()</code> tanıdır. <code>force_simd_level(SimdLevel::Scalar)</code> test içindir; desteklenmeyen yolu zorlamak <code>false</code> döner. <code>std::nullopt</code> algılanan yola geri döner.</p>
+
+<h2>7. Öğrenme hızı ile weight decay’in iki yeri</h2>
+<p>Bu, kütüphanede en çok karıştırılan noktadır. İki ayrı sayı vardır ve adım ikisini birden okur.</p>
+<table>
+<tr><th>Yer</th><th>Alan</th><th>Adımda etkisi</th></tr>
+<tr><td>Grup</td><td><code>options.learning_rate</code></td><td>O grubun γ değeri. Zamanlayıcı bunu değiştirir. <strong>Asıl hız budur.</strong></td></tr>
+<tr><td>Grup</td><td><code>options.weight_decay</code></td><td>Yalnızca <code>weight_decay_override == true</code> iken λ olur.</td></tr>
+<tr><td>Grup</td><td><code>weight_decay_override</code></td><td>false (varsayılan): λ, optimizer <code>Options::weight_decay</code> içinden gelir. true: gruptaki λ, sıfır bile olsa, kazanır.</td></tr>
+<tr><td>Optimizer</td><td><code>Options::lr</code></td><td>Tek başına parametreyi ölçeklemez. RAdam ve Adagrad gibi formüllerde baz olarak da okunur. Yine de grup hızını aynı değere koyun.</td></tr>
+<tr><td>Optimizer</td><td><code>Options::weight_decay</code></td><td>Override olmayan grupların λ değeri.</td></tr>
+</table>
+<pre>nexus_optim::ParamGroupOptions govde;
+govde.learning_rate = 1e-4;          <span class="c">// gövde yavaş öğrensin</span>
+<span class="c">// override false: λ = AdamW Options içindeki 0.01</span>
+
+nexus_optim::ParamGroupOptions norm;
+norm.learning_rate = 1e-4;
+norm.weight_decay = 0.0;
+norm.weight_decay_override = true;   <span class="c">// bias ve LayerNorm’a decay yok</span>
+
+nexus_optim::AdamW&lt;float&gt;::Options opt;
+opt.lr = 1e-4;
+opt.weight_decay = 0.01;</pre>
+<div class="warn">Yalnızca <code>opt.lr = 1e-3</code> yazıp grupta <code>learning_rate</code> bırakmak, grubun varsayılanı da 1e-3 olduğu için şans eseri çalışır. Grubu 1e-4 yapıp Options’ı 1e-3 bırakırsanız adım 1e-4 kullanır. İkisini bilerek aynı tutun. Zamanlayıcı daha sonra grup alanını değiştirir; Options’taki lr sabit kalır.</div>
+
+<h2>8. SGD, momentum, Nesterov</h2>
+<p>Üç sınıf tek çekirdektir. Fark, kurucuda seçilen momentum ve Nesterov bayrağıdır.</p>
+<div class="formula">
+g ← g + λ p &nbsp;&nbsp; eğer λ ≠ 0<br/>
+eğer μ ≠ 0: &nbsp; v ← μ v + (1 − τ) g<br/>
+&nbsp;&nbsp; Nesterov ise g ← g + μ v, değilse g ← v<br/>
+p ← p − γ g
+</div>
+<table>
+<tr><th>Alan</th><th>SGD</th><th>MomentumSGD</th><th>NesterovSGD</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>1e-3</td><td>1e-3</td><td>1e-3</td><td>Options kopyası. Asıl γ gruptadır. Çok büyükse adım zıplar, çok küçükse öğrenme durur.</td></tr>
+<tr><td><code>momentum</code> μ</td><td>0</td><td>0.9</td><td>0.9</td><td>Eski hızın ne kadarı kalsın. 0 düz SGD’dir, tampon ayrılmaz. 0.9 tipiktir. 1’e yaklaştıkça hız birikir, overshoot artar.</td></tr>
+<tr><td><code>dampening</code> τ</td><td>0</td><td>0</td><td>0</td><td>Yeni gradyanın hıza eklenen katsayısını (1−τ) yapar. 0 iken gradyan tam eklenir. PyTorch’taki dampening ile aynıdır.</td></tr>
+<tr><td><code>weight_decay</code> λ</td><td>0</td><td>0</td><td>0</td><td>L2. Gradyana λp ekler. Parametreyi sıfıra çeker. AdamW’deki ayrık decay değildir.</td></tr>
+<tr><td><code>nesterov</code></td><td>false</td><td>false</td><td>true</td><td>true iken güncelleme hızın bir adım ötesindeki gradyanı kullanır. Momentum 0 iken etkisizdir.</td></tr>
+</table>
+<h3>Sayısal yürüyüş — düz SGD</h3>
+<p>p = 1, g = 0.1, γ = 0.1, λ = 0. Güncelleme: 1 − 0.1·0.1 = 0.99. Üçlü örnek (1, 2, 3) ve (0.1, −0.2, 0.5) için sonuç (0.99, 2.02, 2.95).</p>
+<p>λ = 0.5, g = 0, p = 1, γ = 0.1: etkin gradyan 0.5·1 = 0.5, p ← 1 − 0.1·0.5 = 0.95. Decay, gradyan sıfırken bile parametreyi küçültür.</p>
+<h3>Sayısal yürüyüş — momentum</h3>
+<p>p = 1, g = 0.5, γ = 0.1, μ = 0.9, v₀ = 0. İlk adım v = 0.5, p = 1 − 0.1·0.5 = 0.95. İkinci adımda g hâlâ 0.5 ise v = 0.9·0.5 + 0.5 = 0.95, p = 0.95 − 0.1·0.95 = 0.855. Hız birikiyor; aynı gradyan ikinci adımda daha sert iter.</p>
+<h3>Sayısal yürüyüş — Nesterov</h3>
+<p>Aynı sayılar, ilk adım. v = 0.5. Lookahead gradyanı = 0.5 + 0.9·0.5 = 0.95. p = 1 − 0.1·0.95 = 0.905. Düz momentumdan daha büyük bir ilk adım atar.</p>
+<pre>nexus_optim::ParamGroupOptions pg;
+pg.learning_rate = 0.1;
+nexus_optim::MomentumSGD&lt;float&gt;::Options o;
+o.lr = 0.1;
+o.momentum = 0.9;
+nexus_optim::MomentumSGD&lt;float&gt; sgd(
+    {nexus_optim::make_group(p.data(), g.data(), n, pg)}, o);
+sgd.zero_grad();
+<span class="c">// backward g’yi doldurur</span>
+sgd.step();</pre>
+
+<h2>9. Adagrad, RMSProp, Adadelta</h2>
+<h3>Adagrad — her parametrenin kendi biriken ölçeği</h3>
+<div class="formula">γ<sub>t</sub> = γ / (1 + (t−1)·lr_decay)<br/>
+g ← g + λ p<br/>
+s ← s + g²<br/>
+p ← p − γ<sub>t</sub> · g / (√s + ε)</div>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>1e-2</td><td>Başlangıç hızı. Seyrek özelliklerde (embedding) klasik seçimdir. Zamanla s büyüdüğü için etkin adım kendiliğinden küçülür.</td></tr>
+<tr><td><code>lr_decay</code></td><td>0</td><td>Ek olarak γ’yı adım sayısıyla böler. 0 iken yalnızca s’nin büyümesi yavaşlatır.</td></tr>
+<tr><td><code>eps</code></td><td>1e-10</td><td>Sıfıra bölmeyi engeller. İlk adımda s = g² olduğu için payda en az |g| kadardır.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td>Gradyana eklenen λ. Ayrık değildir.</td></tr>
+</table>
+<p>Sayı: p = 0, g = 1, γ = 0.1, ε = 1e-8, decay 0. s = 1, p ← −0.1 / (1 + 1e-8) ≈ −0.1. Aynı koordinat defalarca gradyan görürse s şişer ve adım küçülür. Bu, seyrek güncellenen satırların büyük adım atmasını, sık güncellenenlerin sakinleşmesini sağlar. Uzun eğitimde s hiç küçülmediği için öğrenme erken kilitlenebilir; o yüzden dil modellerinde yerini AdamW almıştır.</p>
+<pre>nexus_optim::Adagrad&lt;float&gt;::Options o;
+o.lr = 0.1; o.eps = 1e-8;
+nexus_optim::ParamGroupOptions pg; pg.learning_rate = 0.1;
+nexus_optim::Adagrad&lt;float&gt; ada({nexus_optim::make_group(p.data(), g.data(), n, pg)}, o);</pre>
+
+<h3>RMSProp — Adagrad’ın unutan hali</h3>
+<div class="formula">v ← α v + (1−α) g²<br/>
+payda = √v + ε<br/>
+centered ise payda = √(max(0, v − ḡ²)) + ε, &nbsp; ḡ de aynı α ile ortalanır<br/>
+μ ≠ 0 ise tampon ← μ·tampon + g/payda, &nbsp; p ← p − γ·tampon<br/>
+değilse p ← p − γ·g/payda</div>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>1e-2</td><td>Adım büyüklüğü. 1e-3 ile 1e-2 arası yaygındır.</td></tr>
+<tr><td><code>alpha</code></td><td>0.99</td><td>Kare geçmişin unutma hızı. 1’e yakınsa eski gradyanlar uzun hatırlanır, v yavaş değişir. Küçültürseniz adaptasyon sinirli olur.</td></tr>
+<tr><td><code>eps</code></td><td>1e-8</td><td>Payda tabanı.</td></tr>
+<tr><td><code>momentum</code></td><td>0</td><td>0 değilse ikinci bir tampon ayrılır ve güncelleme o tampon üzerinden yapılır.</td></tr>
+<tr><td><code>centered</code></td><td>false</td><td>true ise varyans, kare ortalamadan ortalamanın karesi düşülerek hesaplanır. Ek tampon ister.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td>Gradyana λp.</td></tr>
+</table>
+
+<h3>Adadelta — öğrenme hızını kendisi üretir</h3>
+<div class="formula">E[g²] ← ρ E[g²] + (1−ρ) g²<br/>
+Δ ← g · √(E[Δ²]+ε) / √(E[g²]+ε)<br/>
+E[Δ²] ← ρ E[Δ²] + (1−ρ) Δ²<br/>
+p ← p − γ Δ</div>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>1</td><td>Δ’nın ölçeği. Algoritma birimini kendisi kurduğu için 1 bırakmak PyTorch ile aynıdır. Küçültürseniz bütün adımlar lineer olarak küçülür.</td></tr>
+<tr><td><code>rho</code></td><td>0.9</td><td>Pencerelerin ne kadar geçmişe baktığı. RMSProp’taki alpha’nın karşılığıdır.</td></tr>
+<tr><td><code>eps</code></td><td>1e-6</td><td>Hem pay hem payda içindedir. İlk adımda E[Δ²] = 0 olduğu için ilk Δ, ε sayesinde küçüktür.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td>Gradyana eklenir.</td></tr>
+</table>
+<p>İki tampon vardır: kare gradyan penceresi ve adım penceresi. Öğrenme hızını ayarlamaktan kaçındığınız, ölçeği dengesiz kayıplarda kullanılır. Modern büyük modellerde nadiren AdamW’den iyidir.</p>
+
+<h2>10. Adam ve AdamW</h2>
+<p>İkisi aynı şablondur: <code>AdamImpl&lt;T, false&gt;</code> Adam, <code>AdamImpl&lt;T, true&gt;</code> AdamW. Fark tek bayraktır: weight decay momentten önce gradyana mı eklenir, yoksa parametreden ayrı mı düşülür.</p>
+<div class="formula">
+Adam: &nbsp; g ← g + λ p &nbsp; sonra momentler bu g’yi görür.<br/>
+AdamW: p ← p − γ λ p &nbsp; momentler ham g’yi görür. Decay, adaptif paydadan geçmez.<br/><br/>
+m ← β₁ m + (1−β₁) g<br/>
+v ← β₂ v + (1−β₂) g²<br/>
+m̂ = m / (1−β₁<sup>t</sup>) &nbsp;&nbsp; v̂ = v / (1−β₂<sup>t</sup>)<br/>
+p ← p − γ m̂ / (√v̂ + ε)<br/>
+amsgrad ise v̂’nin kaynağı o ana kadarki en büyük v’dir.
+</div>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar, yükseltince / düşürünce ne olur</th></tr>
+<tr><td><code>lr</code></td><td>1e-3</td><td>Options kopyası. Asıl γ gruptadır. Dil modeli ince ayarında çoğu kez 1e-5…1e-4, sıfırdan MLP’de 1e-3 makuldür. Çok yüksekse loss sapar.</td></tr>
+<tr><td><code>beta1</code></td><td>0.9</td><td>Birinci momentin (yönün) hafızası. 0.9, son yaklaşık 10 adımın gradyanına ağırlık verir. Yükseltmek (0.95) yönü yumuşatır, düşürmek güncel gradyana yapışır.</td></tr>
+<tr><td><code>beta2</code></td><td>0.999</td><td>İkinci momentin (ölçeğin) hafızası. 0.999 uzun penceredir. Gürültülü küçük batch’te 0.99 denemek paydadaki zıplamayı azaltabilir. 1 olamaz; düzeltme paydası sıfırlanır.</td></tr>
+<tr><td><code>eps</code></td><td>1e-8</td><td>Payda tabanı. Çok küçük ikinci momentte adımın sonsuza gitmesini keser. FP16 ince ayarda bazen 1e-6 kullanılır; bu kopyada varsayılan 1e-8’dir.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td>Adam’da gradyana karışır, yani büyük gradyanlı koordinat decay’i de küçük sanabilir. AdamW’de her koordinattan γλp düşülür; 0.01 veya 0.1 klasiktir. Bias’a uygulamak genelde istenmez.</td></tr>
+<tr><td><code>amsgrad</code></td><td>false</td><td>true ise ek tampon tutar ve paydada v’nin tarihsel maksimumunu kullanır. Bazı yakınsama kanıtları için vardır. Çoğu görüntü ve dil eğitiminde kapalı kalır; bellek bir tampon daha yer.</td></tr>
+</table>
+<h3>İlk adımın elle hesabı</h3>
+<p>p = 1, g = 0.1, γ = 1e-3, β₁ = 0.9, β₂ = 0.999, ε = 1e-8, λ = 0, t = 1.</p>
+<ul>
+<li>m = 0.1 · 0.1 = 0.01 &nbsp; çünkü (1−β₁) g ve m₀ = 0.</li>
+<li>v = 0.001 · 0.01 = 1e-5.</li>
+<li>1−β₁¹ = 0.1, dolayısıyla m̂ = 0.01 / 0.1 = 0.1 = g.</li>
+<li>1−β₂¹ = 0.001, v̂ = 1e-5 / 0.001 = 0.01 = g².</li>
+<li>√v̂ = 0.1. Payda = 0.1 + 1e-8.</li>
+<li>Adım = 0.001 · 0.1 / 0.1 = 0.001.</li>
+<li>p ← 1 − 0.001 = 0.999.</li>
+</ul>
+<p>İlk adımda bias düzeltmesi momentleri ham gradyana çevirir. İşaret ile öğrenme hızının çarpımı kadar bir adım atılır. Bu, testteki kapalı formdur.</p>
+<p>AdamW, λ = 0.01, aynı sayılar: önce p ← 1 − 0.001·0.01·1 = 0.99999. Momentler decay’siz g = 0.1 görür, yine 0.001 düşülür. Sonuç 0.99899. Decay ve adaptif adım birbirine karışmamıştır.</p>
+<pre>nexus_optim::AdamW&lt;float&gt;::Options opt;
+opt.lr = 1e-3;
+opt.beta1 = 0.9;
+opt.beta2 = 0.999;
+opt.eps = 1e-8;
+opt.weight_decay = 0.01;
+opt.amsgrad = false;
+
+nexus_optim::ParamGroupOptions pg;
+pg.learning_rate = 1e-3;
+
+nexus_optim::AdamW&lt;float&gt; optimizer(
+    {nexus_optim::make_group(p.data(), g.data(), n, pg)}, opt);
+
+nexus_optim::CosineAnnealingLR sched(optimizer, /*T_max=*/1000);
+optimizer.zero_grad();
+<span class="c">// backward</span>
+nexus_optim::clip_grad_norm_(optimizer.param_groups(), 1.0);
+optimizer.step();
+sched.step();</pre>
+<p>İki gruplu, decay’siz kafa:</p>
+<pre>nexus_optim::ParamGroupOptions head;
+head.learning_rate = 1e-3;
+head.weight_decay = 0;
+head.weight_decay_override = true;
+nexus_optim::AdamW&lt;float&gt; two(
+    {nexus_optim::make_group(body, body_g, body_n, pg),
+     nexus_optim::make_group(head_p, head_g, head_n, head)},
+    opt);</pre>
+
+<h2>11. NAdam, RAdam, AdaBelief</h2>
+<h3>NAdam</h3>
+<p>Adam’ın birinci momentine Nesterov bakışı ekler. PyTorch 2.4 formülü uygulanır.</p>
+<div class="formula">μ<sub>t</sub> = β₁ (1 − ½ · 0.96<sup>t·ψ</sup>)<br/>
+μ ürünü her adım μ<sub>t</sub> ile çarpılır, başlangıç 1’dir.<br/>
+m ve v olağan güncellenir.<br/>
+p += ( adım_g · g + adım_m · m ) / (√(v / (1−β₂<sup>t</sup>)) + ε)</div>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>2e-3</td><td>Adam’dan biraz yüksek varsayılır; formülün ölçeği buna göredir.</td></tr>
+<tr><td><code>beta1</code>, <code>beta2</code>, <code>eps</code></td><td>0.9, 0.999, 1e-8</td><td>Adam ile aynı anlam.</td></tr>
+<tr><td><code>momentum_decay</code> ψ</td><td>4e-3</td><td>μ’nün zamanla β₁’den biraz aşağı kaymasını sağlar. Büyütünce Nesterov karışımı daha hızlı değişir. Varsayılanı değiştirmeyin, formül ona göre ayarlıdır.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td>Aşağıdaki bayrağa göre ya gradyana eklenir ya da parametreden düşülür.</td></tr>
+<tr><td><code>decoupled_weight_decay</code></td><td>false</td><td>true ise NAdamW. Dil modellerinde decay kullanacaksanız true düşünün.</td></tr>
+</table>
+<pre>nexus_optim::NAdam&lt;float&gt;::Options o;
+o.lr = 2e-3;
+o.momentum_decay = 4e-3;
+nexus_optim::ParamGroupOptions pg; pg.learning_rate = 2e-3;
+nexus_optim::NAdam&lt;float&gt; nadam({nexus_optim::make_group(p.data(), g.data(), n, pg)}, o);</pre>
+
+<h3>RAdam</h3>
+<p>İlk adımlarda ikinci moment henüz güvenilir değildir. ρ<sub>t</sub> 5’i geçene kadar güncelleme adaptif değildir:</p>
+<div class="formula">ρ∞ = 2/(1−β₂) − 1<br/>
+ρ<sub>t</sub> = ρ∞ − 2 t β₂<sup>t</sup> / (1 − β₂<sup>t</sup>)<br/>
+ρ<sub>t</sub> ≤ 5: &nbsp; p ← p − γ · m / (1−β₁<sup>t</sup>)<br/>
+ρ<sub>t</sub> &gt; 5: &nbsp; düzeltme çarpanı ile klasik adaptif adım</div>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>1e-3</td><td>Hem erken SGD benzeri fazın hem sonraki adaptif fazın ölçeği. Grup hızı zamanlayıcıyla değişince adaptif adım da grup hızından yeniden kurulur.</td></tr>
+<tr><td><code>beta1</code>, <code>beta2</code>, <code>eps</code></td><td>0.9, 0.999, 1e-8</td><td>β₂, ρ’nun ne zaman 5’i aşacağını da belirler. Varsayılanla ilk birkaç adım düzeltmesiz gider.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td><code>decoupled_weight_decay</code> false iken gradyana, true iken parametreye uygulanır.</td></tr>
+<tr><td><code>decoupled_weight_decay</code></td><td>false</td><td>AdamW stili decay.</td></tr>
+</table>
+<p>Ne zaman seçilir: Adam’ın ilk adımlarda loss’u sıçrattığı, ısınma yazmak istemediğiniz küçük deneyler. Büyük dil eğitiminde ısınmalı AdamW daha yaygındır.</p>
+
+<h3>AdaBelief</h3>
+<div class="formula">m ← β₁ m + (1−β₁) g<br/>
+s ← β₂ s + (1−β₂) (g − m)² + ε<br/>
+p ← p − γ m̂ / (√ŝ + ε)</div>
+<p>“İnanç”, gradyanın kendi ortalamasına ne kadar benzediğidir. Sapma küçükse (model öngördüğünü görüyorsa) payda küçülür, adım büyür. Sürpriz gradyanda adım küçülür.</p>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>1e-3</td><td>Adım ölçeği.</td></tr>
+<tr><td><code>beta1</code>, <code>beta2</code></td><td>0.9, 0.999</td><td>Ortalama ve sapma pencereleri.</td></tr>
+<tr><td><code>eps</code></td><td>1e-8</td><td>Hem s’nin içine her adım eklenir hem paydaya. Bu, makaledeki sabitleyicidir. ε’u büyütmek s’yi şişirir ve adımı küçültür.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td>Decay miktarı.</td></tr>
+<tr><td><code>decoupled_weight_decay</code></td><td>true</td><td>Varsayılan ayrık decay’dir. Kapamak için false yazın.</td></tr>
+</table>
+
+<h2>12. LAMB, LARS, Lion</h2>
+<h3>LAMB — katman boyunu koruyan Adam</h3>
+<div class="formula">u₀ = m̂ / (√v̂ + ε)<br/>
+u = u₀ + λ p<br/>
+güven = ‖p‖₂ / ‖u‖₂ &nbsp; (pay veya payda 0 ise güven = 1)<br/>
+p ← p − γ · güven · u</div>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>1e-3</td><td>Büyük batch’te Adam’a göre yüksek hız kaldırabildiği için tercih edilir. Yine de LinearWarmup ile açın.</td></tr>
+<tr><td><code>beta1</code>, <code>beta2</code></td><td>0.9, 0.999</td><td>Adam ile aynı momentler. Güven oranından önce hesaplanır.</td></tr>
+<tr><td><code>eps</code></td><td>1e-6</td><td>Adam’dan büyük varsayılan. Paydadaki küçük v’lerin güven oranını şişirmesini keser.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td>u’nun içine λp olarak girer, yani hem yönde hem ‖u‖ normunda vardır. 0.01 tipiktir. Güven oranını da etkiler; “önce decay sonra güven” sırası budur.</td></tr>
+</table>
+<p>Ek bellek: m, v ve bir scratch u. Scratch checkpoint’e yazılmaz. Güven katman tensörünün tamamına göredir; 50.000’den büyük diye parçalara bölünüp her parçaya ayrı güven verilmez. CUDA’da bu norm atomik blok toplamıyla gelir, sıra bit-tam aynı olmayabilir, test toleransı 2e-4’tür.</p>
+<pre>nexus_optim::LAMB&lt;float&gt;::Options o;
+o.lr = 1e-3; o.weight_decay = 0.01;
+nexus_optim::ParamGroupOptions pg; pg.learning_rate = 1e-3;
+nexus_optim::LAMB&lt;float&gt; lamb({nexus_optim::make_group(p.data(), g.data(), n, pg)}, o);
+nexus_optim::LinearWarmup warm(lamb, 1000);</pre>
+
+<h3>LARS — aynı fikir, SGD tabanı</h3>
+<div class="formula">güven = η ‖p‖ / (‖g‖ + λ ‖p‖ + ε)<br/>
+ölçek = g + λ p<br/>
+μ ≠ 0 ise v ← μ v + ölçek, aksi halde v yerine ölçek<br/>
+p ← p − γ · güven · v</div>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>1</td><td>Güven zaten katman ölçeğini içeri alır. 1, orijinal tarifteki gibi yüksek bir bazdır. Küçük modellere körlemesine koymayın.</td></tr>
+<tr><td><code>momentum</code></td><td>0.9</td><td>0 yaparsanız hız tamponu hiç ayrılmaz.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td>Hem güncellemeye eklenir hem paydadaki ‖g‖ + λ‖p‖ terimine girer. Güveni küçültür.</td></tr>
+<tr><td><code>eta</code> (η)</td><td>1e-3</td><td>Güven oranının çarpanı. Asıl “ne kadar cesur” sorusunun cevabı η’dır. lr’den bağımsız küçültmek bütün katmanları sakinleştirir.</td></tr>
+<tr><td><code>eps</code></td><td>1e-8</td><td>Sıfır norma karşı.</td></tr>
+</table>
+
+<h3>Lion — işaret ve tek tampon</h3>
+<div class="formula">c = β₁ m + (1−β₁) g<br/>
+p ← (1 − γ λ) p − γ · sign(c)<br/>
+m ← β₂ m + (1−β₂) g<br/>
+sign(0) = 0</div>
+<table>
+<tr><th>Alan</th><th>Varsayılan</th><th>Ne işe yarar</th></tr>
+<tr><td><code>lr</code></td><td>1e-4</td><td>Adam’dan küçük tutulur çünkü adımın büyüklüğü doğrudan γ’dır; payda yoktur. 1e-4 civarı başlayın. 1e-3 çoğu ağda serttir.</td></tr>
+<tr><td><code>beta1</code></td><td>0.9</td><td>İşaretin bakacağı karışım: ne kadar eski m, ne kadar taze g. Yönü belirler, büyüklüğü değil.</td></tr>
+<tr><td><code>beta2</code></td><td>0.99</td><td>m’nin kendisi bu katsayıyla güncellenir. β₁’den ayrıdır. 0.99, işaretten daha uzun bir hafızadır.</td></tr>
+<tr><td><code>weight_decay</code></td><td>0</td><td>Her zaman ayrıktır: çarpan (1−γλ). AdamW’dekiyle aynı fikirdir. 0.01…1 aralığı Lion yazınlarında kullanılır; büyük λ parametreyi hızlı söndürür.</td></tr>
+</table>
+<p>Bellek Adam’ın yarısıdır: yalnız m. Sayı: p = 0.5, g = 1, γ = 1e-3, λ = 0. Karışım = 0.1·1 = 0.1, sign = +1, p = 0.5 − 0.001 = 0.499. Gürültüye karşı büyüklük üretmediği için batch gürültüsünde bazen AdamW’den sakin durur; lr’yi Adam’dan devralırsanız ıraksar.</p>
+<pre>nexus_optim::Lion&lt;float&gt;::Options o;
+o.lr = 1e-4; o.beta1 = 0.9; o.beta2 = 0.99; o.weight_decay = 0.01;
+nexus_optim::ParamGroupOptions pg; pg.learning_rate = 1e-4;
+nexus_optim::Lion&lt;float&gt; lion({nexus_optim::make_group(p.data(), g.data(), n, pg)}, o);</pre>
+
+<h2>13. Lookahead</h2>
+<p>Herhangi bir optimizer’ın üstüne oturan yavaş ağırlık katmanıdır. İç optimizer her adım hızlı ağırlığı (sizin parametrenizi) günceller. Her k adımda bir yavaş kopya hızlıya doğru α kadar yürür ve hızlı, yavaşa eşitlenir.</p>
+<div class="formula">yavaş ← (1−α) yavaş + α hızlı<br/>hızlı ← yavaş</div>
+<table>
+<tr><th>Argüman</th><th>Anlam</th></tr>
+<tr><td><code>k</code></td><td>Kaç iç adımda bir karışım. 1 ise her adım. 5 veya 10 yaygındır. 1’den küçükse kurucu hata verir.</td></tr>
+<tr><td><code>alpha</code></td><td>Yavaşın hızlıya ne kadar inandığı. 0.5 yarı yarıyadır. 1 hızlıyı olduğu gibi yavaş beller. (0, 1] dışında hata.</td></tr>
+</table>
+<p>Yavaş kopya kurucuda parametrenin o anki değeridir. Ek bellek, parametre boyutunun bir kopyasıdır. Sayı: k = 1, α = 0.5, SGD γ = 0.1, p = 1, g = 1. İç adım p’yi 0.9 yapar. Yavaş 1 ile karışır: 0.5·1 + 0.5·0.9 = 0.95. Parametre 0.95’e çekilir.</p>
+<pre>nexus_optim::SGD&lt;float&gt; inner({group}, sgd_opt);
+nexus_optim::Lookahead&lt;nexus_optim::SGD&lt;float&gt;&gt; opt(std::move(inner), 6, 0.5f);
+opt.zero_grad();
+opt.step();
+opt.param_groups();   <span class="c">// zamanlayıcı bağlamak için</span>
+opt.base();           <span class="c">// alttaki SGD</span></pre>
+
+<h2>14. Zamanlayıcıların her argümanı</h2>
+<p>Hepsi kurucuda optimizer referansı alır ve <code>param_groups()</code> içindeki hızların adresini kaydeder. Baz hız, kurucu anındaki gruptur. <code>last_epoch</code> −1’den başlar; ilk <code>step()</code> onu 0 yapar. <code>get_last_lr()</code> birinci grubun son hızı, <code>get_last_lrs()</code> hepsidir.</p>
+
+<h3>StepLR(opt, step_size, gamma = 0.1)</h3>
+<p>Formül: baz · γ<sup>⌊epoch / step_size⌋</sup>. step_size en az 1. Örnek: baz 0.8, step_size 2, gamma 0.1. Adım 0 ve 1 hâlâ 0.8’dir. Adım 2’de 0.08 olur. “Her iki epoch’ta bir” sayıyorsanız ilk düşüş üçüncü <code>scheduler.step()</code> çağrısındadır, çünkü sayaç 0’dan başlar.</p>
+
+<h3>ExponentialLR(opt, gamma)</h3>
+<p>baz · γ<sup>epoch</sup>. gamma 0.5 ise dizi 1, 0.5, 0.25, … katlarıdır (baz 1 iken). 1’den büyük gamma hızı büyütür. 0 olursa ikinci adımdan itibaren hız 0’dır.</p>
+
+<h3>CosineAnnealingLR(opt, T_max, eta_min = 0)</h3>
+<p>η_min + (baz − η_min) · (1 + cos(π t / T_max)) / 2. t, T_max’ı aşarsa T_max’ta tutulur. T_max en az 1. T_max = 2, eta_min = 0, baz 1: epoch 0’da 1, epoch 1’de 0.5, epoch 2’de 0. Eğitim uzunluğu kadar T_max verin; kısa T_max hızı erken tabana yapıştırır.</p>
+
+<h3>CosineAnnealingWarmRestarts(opt, T_0, T_mult = 1, eta_min = 0)</h3>
+<p>SGDR. Periyot T_i = T_0 ile başlar. T_cur, T_i olunca sıfırlanır ve T_i, T_mult ile çarpılır. T_mult = 1 ise periyotlar eşit kalır, hız her periyotta bazdan geri açılır. T_mult = 2 periyotları uzatır. T_0 ve T_mult en az 1.</p>
+
+<h3>OneCycleLR(opt, max_lr, total_steps, pct_start = 0.3, div_factor = 25, final_div_factor = 1e4)</h3>
+<table>
+<tr><th>Argüman</th><th>Ne işe yarar</th></tr>
+<tr><td><code>max_lr</code></td><td>Çevrimin tepesi. Grubun baz hızı ile aynı olmak zorunda değildir; çevrim bu sayıdan kurulur, grupların birbirine oranı birinci grubun bazına bölünerek korunur.</td></tr>
+<tr><td><code>total_steps</code></td><td>Çevrimin uzunluğu, eğitim adımı cinsinden. En az 1. Bitince hız tabanda kalır.</td></tr>
+<tr><td><code>pct_start</code></td><td>Yükselişin çevrime oranı. 0.3 ise ilk %30 doğrusal tırmanış, kalanı kosinüs iniş.</td></tr>
+<tr><td><code>div_factor</code></td><td>Başlangıç = max_lr / div_factor. 25 ise tepeye 25 kat küçük başlar.</td></tr>
+<tr><td><code>final_div_factor</code></td><td>Bitiş = max_lr / (div_factor · final_div_factor). 1e4 ile bitiş, başlangıcın 10 000’de biri kadar küçüktür.</td></tr>
+</table>
+
+<h3>LinearWarmup(opt, warmup_steps)</h3>
+<p>Hız = baz · min(1, (epoch+1) / warmup_steps). warmup_steps = 4, baz = 0.4 ise çağrılar 0.1, 0.2, 0.3, 0.4 üretir. Büyük batch ve LAMB ile ilk bin adıma koyun. Isınma bitince bu nesneyi kullanmayı bırakın; yoksa hız bazda kalır, düşmez. Düşüş için yeni bir kosinüs kurun. İkisini aynı adımda üst üste çağırırsanız ikisi de kendi bazına kilitlendiği için birbirini ezer.</p>
+
+<h3>ReduceLROnPlateau(opt, factor = 0.1, patience = 10, threshold = 1e-4, cooldown = 0, min_lr = 0)</h3>
+<p>Daha küçük metrik daha iyidir. İyileşme, <code>yeni &lt; en_iyi · (1 − threshold)</code> demektir. threshold 1e-4 ise yüzde 0.01’den küçük kıpırdamalar iyileşme sayılmaz. patience kadar kötü gözlemden sonra hız factor ile çarpılır. factor (0, 1) aralığında olmalıdır; 0.1 hızı onda bire indirir. İndirimden sonra cooldown kadar adım yok sayılır. min_lr tabandır. Metriksiz <code>step()</code> hata fırlatır.</p>
+<pre>nexus_optim::ReduceLROnPlateau plateau(opt, /*factor=*/0.1, /*patience=*/5);
+<span class="c">// doğrulama sonunda:</span>
+plateau.step(val_loss);</pre>
+
+<h2>15. Gradyan fonksiyonları</h2>
+<p>Bunlar parametreyi değil gradyanı değiştirir ve <code>step</code>’ten önce çağrılır. CUDA gradyanını bugün atlarlar; kırpma host bellek içindir.</p>
+<h3><code>clip_grad_norm_(groups, max_norm, norm_type = 2)</code></h3>
+<p>Dönüş: kırpmadan önceki norm. p = 2 varsayılandır ve SIMD kare toplam kullanır. p = sonsuz ise elemanların en büyük mutlak değeri alınır. Başka p için eleman bazlı <code>pow</code> vardır, yavaştır. max_norm negatifse hata. Ölçek = min(1, max_norm / (norm + 1e-6)). 1e-6, sıfır gradyanda bölmeyi keser ve PyTorch ile aynıdır. Örnek: g = (3, 4, 0), max 1, norm 5, g ≈ (0.6, 0.8, 0).</p>
+<p>Ne işe yarar: bir batch’in patolojik gradyanı bütün adımı uçurmasın. max_norm 1, dil modellerinde sık kullanılan emniyettir. Çok küçük max_norm öğrenmeyi boğar; çok büyükse hiç kırpmazsınız.</p>
+<h3><code>clip_grad_value_(groups, clip)</code></h3>
+<p>Her elemanı [−|clip|, |clip|] aralığına keser. Norm kırpmasından farkı: yönü küresel olarak ölçeklemez, uç elemanı tek tek keser. İkisi birden nadiren gerekir. Biri yetiyorsa norm kırpması daha yaygındır.</p>
+<h3><code>scale_gradients_(groups, scale)</code></h3>
+<p>Gradyanı skalerle çarpar. Biriktirmenin standart kullanımı: N mikro-batch’te <code>zero_grad</code> yok, her biri geri yayılım yapıyor, sonra</p>
+<pre>nexus_optim::scale_gradients_(opt.param_groups(), 1.0 / N);
+opt.step();
+opt.zero_grad();</pre>
+<p>Bunu unutursanız etkin öğrenme hızınız N katına çıkar.</p>
+<h3><code>gradient_centralization_(groups, channels = 0)</code></h3>
+<p>channels 0 ise tensör tek vektördür, ortalaması çıkarılır. Aksi halde eleman sayısı kanala bölünmek zorundadır; bölünmezse hata. Kalan eksen 1 ise (bias) fonksiyon o tensöre dokunmaz, çünkü çıkarılacak bir yayılım yoktur. CNN ve lineer katmanın ağırlık gradyanında, kanal başına ortalamayı silmek bazı mimarilerde yakınsamayı yumuşatır. Kırpmadan önce uygulayın ki norm, merkezlenmiş gradyanı görsün.</p>
+
+<h2>16. FP16, BF16, CUDA, MatrixFlash</h2>
+<h3>Dar depolama</h3>
+<p><code>float16::from_float</code> / <code>to_float</code> IEEE FP16 yuvarlamasıdır. <code>bfloat16</code> 16 bitlik üst yarıyı, en yakın çifte yuvarlayarak keser. İkisi de 2 bayt hizalıdır. Hesap FP32 master parametrede ve FP32 momentte yürür. Master ve çevrilmiş gradyan tamponu kurucuda ayrılır. Adım sonunda master, çağıranın dar tamponuna geri yazılır. CUDA bu tipleri kabul etmez; cihaz yolu FP32’dir.</p>
+<pre>std::vector&lt;nexus_optim::float16&gt; p(n), g(n);
+p[i] = nexus_optim::float16::from_float(0.5f);
+g[i] = nexus_optim::float16::from_float(0.01f);
+nexus_optim::AdamW&lt;nexus_optim::float16&gt;::Options o;
+o.lr = 1e-3; o.weight_decay = 0.01;
+nexus_optim::ParamGroupOptions pg; pg.learning_rate = 1e-3;
+nexus_optim::AdamW&lt;nexus_optim::float16&gt; opt(
+    {nexus_optim::make_group(p.data(), g.data(), n, pg)}, o);
+opt.step();
+float readable = p[0].to_float();</pre>
+
+<h3>CUDA’yı kendiniz bağlamak</h3>
+<pre>float *d_p = nullptr, *d_g = nullptr;
+cudaMalloc(&amp;d_p, n * sizeof(float));
+cudaMalloc(&amp;d_g, n * sizeof(float));
+cudaMemcpy(d_p, host_p, n * sizeof(float), cudaMemcpyHostToDevice);
+cudaMemcpy(d_g, host_g, n * sizeof(float), cudaMemcpyHostToDevice);
+
+nexus_optim::ParamGroup&lt;float&gt; g;
+g.params = {d_p}; g.grads = {d_g}; g.numels = {n};
+g.devices = {nexus_optim::Device::CUDA};
+g.options.learning_rate = 1e-3;
+
+nexus_optim::AdamW&lt;float&gt;::Options o;
+o.lr = 1e-3; o.weight_decay = 0.01;
+nexus_optim::AdamW&lt;float&gt; gpu({g}, o);
+gpu.zero_grad();   <span class="c">// cihaz gradyanını sıfırlar; sonra backward d_g’yi doldurmalı</span>
+gpu.step();        <span class="c">// dönünce d_p günceldir</span>
+cudaMemcpy(host_p, d_p, n * sizeof(float), cudaMemcpyDeviceToHost);</pre>
+<p>Momentleri siz ayırmazsınız. Kurucu, her CUDA tensörü için cihaz tamponu ister. <code>double</code> veya <code>float16</code> ile <code>Device::CUDA</code> hata verir. CUDA kapalı derlemede herhangi bir CUDA tensörü hata verir.</p>
+
+<h3>MatrixFlash</h3>
+<p>Şemsiye başlık adaptörü içermez. Ayrıca şunu ekleyin ve CMake’e include yolunu verin:</p>
+<pre>#include &lt;nexus_optim/adapters/matrixflash.hpp&gt;
+
+auto group = nexus_optim::group_from_host(params, grads, options);
+<span class="c">// cihaz eğitiminde:</span>
+auto dev = nexus_optim::group_from_device(params, grads, options);
+opt.step();
+nexus_optim::mark_host_stale(params);</pre>
+<p>Gerçek Tensor API’si varsayılandan farklıdır. Tip <code>matrix_pro::Tensor</code>, şablon değil, eleman <code>float</code>. Uzunluk <code>size()</code>. Host ayna <code>host_ptr()</code>. Cihaz <code>device_data()</code>. <code>group_from_host</code> indirme çağırmaz; aynanın güncel olması sizin işiniz. <code>group_from_device</code> işaretçi yoksa hata verir. Adaptörden sonra host’tan okuyacaksanız <code>download()</code> veya taze ayna gerekir; <code>mark_host_stale</code> aynanın bayat olduğunu işaretler.</p>
+
+<h3>Durum kaydı</h3>
+<pre>auto snap = opt.state_dict();
+<span class="c">// snap.algorithm, snap.step, snap.group_learning_rates, snap.blobs, snap.scalars</span>
+<span class="c">// Parametreleri model kaydı tutsun. Burada yalnızca moment vardır.</span>
+
+nexus_optim::AdamW&lt;float&gt; resumed(groups_same_shapes, same_options);
+resumed.load_state_dict(snap);</pre>
+<p>Yüklemeden önce parametrelerin kendisi de checkpoint değerine getirilmiş olmalıdır. Aksi halde moment yeni parametreyle uyuşmaz ve ilk adım saçmalar. Blob bayt sayısı <code>numel * sizeof(float)</code> olmalıdır. LAMB scratch’i kayda girmez. NAdam’ın μ çarpımı <code>scalars</code> içindedir.</p>
+
+<h2>17. Hazır reçeteler</h2>
+<h3>Küçük ağ, sıfırdan, AdamW</h3>
+<p>lr 1e-3, weight decay 0.01, beta varsayılan, clip 1, kosinüs T_max = toplam adım. Bias varsa ikinci grupta override ile decay 0.</p>
+<h3>Büyük batch, LAMB</h3>
+<p>lr 1e-3 veya batch büyüdükçe yukarı, weight decay 0.01, eps 1e-6, LinearWarmup 1000 adım, sonra ayrı bir CosineAnnealingLR. Aynı adımda ikisini birden adım atmayın.</p>
+<h3>İşaret tabanlı, az bellek</h3>
+<p>Lion, lr 1e-4 (Adam’daki 1e-3’ü kopyalamayın), beta2 0.99, decay 0.01. Bellek Adam’ın yaklaşık yarısıdır.</p>
+<h3>İlk adımlar zıplıyor, ısınma yazmak istemiyorum</h3>
+<p>RAdam, lr 1e-3. ρ 5’in altındayken adaptif payda kapalıdır.</p>
+<h3>Mikro-batch sığmıyor</h3>
+<p>N adım boyunca <code>zero_grad</code> yok. Sonra <code>scale_gradients_(groups, 1.0/N)</code>, bir <code>step</code>, bir <code>zero_grad</code>. Zamanlayıcıyı her mikro-batch’te değil, bu gerçek adımda bir ilerletin.</p>
+<h3>Doğrulama loss’u takıldı</h3>
+<p><code>ReduceLROnPlateau</code>, factor 0.1, patience 5 veya 10. Eğitim hızı zamanlayıcısından ayrı tutun; ikisi aynı grubu yazarsa son çağıran kazanır.</p>
+
+<h2>18. Hatalar ve kontrol listesi</h2>
+<table>
+<tr><th>Belirti</th><th>Sebep</th></tr>
+<tr><td>Kurucu <code>invalid_argument</code>, “at least one”</td><td>Grup listesi boş.</td></tr>
+<tr><td>“same length”</td><td>params, grads, numels, devices boyutları tutmuyor.</td></tr>
+<tr><td>“null data pointer”</td><td>Uzunluğu pozitif tensörün işaretçisi boş.</td></tr>
+<tr><td>Parametre hiç değişmiyor</td><td><code>zero_grad</code> sonrası gradyanı yeniden yazmadınız, veya γ 0, veya yanlış vektöre backward yazıyorsunuz.</td></tr>
+<tr><td>Loss bir anda NaN</td><td>γ büyük, clip yok, veya gradyan zaten Inf. NaN, adımı sessizce atlamaz; yayılır.</td></tr>
+<tr><td>Decay bias’ta da var</td><td><code>weight_decay_override</code> açılmadı. Varsayılan false, optimizer λ’sını kullanır.</td></tr>
+<tr><td>Zamanlayıcı hızı değiştirmiyor gibi</td><td>StepLR’de ilk düşüş step_size’ıncı değil, sayaç 0’dan başladığı için bir sonraki kattadır. Ayrıca <code>param_groups</code> vektörünü büyüttüyseniz adres düşmüştür.</td></tr>
+<tr><td>İki zamanlayıcı kavga ediyor</td><td>Aynı adımda ikisi de bazdan hesaplayıp üstüne yazar. Birini bırakın.</td></tr>
+<tr><td>CUDA runtime_error</td><td>Derleme bayrağı kapalı, veya skaler double/float16, veya <code>device_data()</code> boş.</td></tr>
+<tr><td>State yüklenmiyor</td><td>Algoritma adı uyuşmuyor veya tensör şekli değişti.</td></tr>
+<tr><td>Resume sonrası ilk adım saçma</td><td>Moment yüklendi, parametre checkpoint’e çekilmedi.</td></tr>
+<tr><td>GPU, CPU’dan yavaş</td><td>1e6 civarı elemanda senkron maliyeti çekirdeği ezer. Parametre cihazda ve daha büyükse yeniden ölçün.</td></tr>
+</table>
+<p>Kontrol listesi, her yeni eğitimden önce: grup γ’sı Options γ’sı ile aynı mı, decay’siz gruplarda override var mı, <code>zero_grad</code> biriktirmenin neresinde, clip <code>step</code>’ten önce mi, zamanlayıcı <code>step</code>’ten sonra mı, CUDA ise işaretçiler cihaz mı, checkpoint’te hem parametre hem <code>state_dict</code> var mı.</p>
+<p class="small">NexusOptim 1.0 ayrıntılı kılavuz. Formüller, varsayılanlar ve süreler bu deponun kaynak kodu ve Release ölçümleriyle aynıdır. AVX-512 bu CPU’da çalışmadığı için o sütun boştur. GPU ölçümü stream senkronu içerir.</p>
+</body>
+</html>

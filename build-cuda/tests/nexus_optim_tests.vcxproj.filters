@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_sgd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_adam.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_adamw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_algorithms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_lr_schedulers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_gradient_clipping.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_against_pytorch_reference.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\test_cuda.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\muham\Desktop\Nexus\lib\NexusOptim\tests\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{0EDA580D-3FEF-3DDB-ADB3-558055213F90}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

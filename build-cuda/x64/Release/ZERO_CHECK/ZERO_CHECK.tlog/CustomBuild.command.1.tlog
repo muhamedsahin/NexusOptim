@@ -1,0 +1,10 @@
+^C:\USERS\MUHAM\DESKTOP\NEXUS\LIB\NEXUSOPTIM\BUILD-CUDA\CMAKEFILES\0DF60A2D0E32F79A9F528FD7E9A2F28F\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/muham/Desktop/Nexus/lib/NexusOptim -BC:/Users/muham/Desktop/Nexus/lib/NexusOptim/build-cuda --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/muham/Desktop/Nexus/lib/NexusOptim/build-cuda/NexusOptim.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

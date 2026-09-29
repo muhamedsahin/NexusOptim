@@ -1,0 +1,10 @@
+^C:\USERS\MUHAM\DESKTOP\NEXUS\LIB\NEXUSOPTIM\BUILD-CUDA\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\7F05770AA6ED9CC1F247DF9871F45CEC\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/muham/Desktop/Nexus/lib/NexusOptim/build-cuda/_deps/googletest-subbuild -BC:/Users/muham/Desktop/Nexus/lib/NexusOptim/build-cuda/_deps/googletest-subbuild --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/muham/Desktop/Nexus/lib/NexusOptim/build-cuda/_deps/googletest-subbuild/googletest-populate.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

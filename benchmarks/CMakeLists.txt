@@ -1,0 +1,6 @@
+add_executable(bench_sgd bench_sgd.cpp)
+add_executable(bench_adam bench_adam.cpp)
+add_executable(bench_cpu_vs_gpu bench_cpu_vs_gpu.cpp)
+target_link_libraries(bench_sgd PRIVATE nexus_optim::nexus_optim)
+target_link_libraries(bench_adam PRIVATE nexus_optim::nexus_optim)
+target_link_libraries(bench_cpu_vs_gpu PRIVATE nexus_optim::nexus_optim)

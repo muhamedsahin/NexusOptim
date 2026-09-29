@@ -1,0 +1,5 @@
+if(EXISTS "C:/Users/muham/Desktop/Nexus/lib/NexusOptim/build-cuda/tests/nexus_optim_tests[1]_tests.cmake")
+  include("C:/Users/muham/Desktop/Nexus/lib/NexusOptim/build-cuda/tests/nexus_optim_tests[1]_tests.cmake")
+else()
+  add_test(nexus_optim_tests_NOT_BUILT nexus_optim_tests_NOT_BUILT)
+endif()
