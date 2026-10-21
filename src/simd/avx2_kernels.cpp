@@ -48,15 +48,24 @@ inline double sqsum8(const float* x) {
   return hsum_pd(_mm256_add_pd(d0, d1));
 }
 
-// rsqrt(x) with one Newton-Raphson step: y = rsqrt(x); y = y*(1.5 - 0.5*x*y*y)
-// Relative error < 2^-22 (~2.4e-7), sufficient for optimizer epsilon > 1e-8.
+// rsqrt(x) with two Newton-Raphson steps:
+//   y = rsqrt(x);  y = 0.5*y*(3 - x*y*y)   twice.
+// One step is about 2^-22 relative. The second step lands under a float32 ulp
+// of the IEEE reciprocal square root for normal optimizer denominators.
 inline __m256 rsqrt_nr(__m256 x) {
-  const __m256 half   = _mm256_set1_ps(0.5f);
-  const __m256 three  = _mm256_set1_ps(3.0f);
-  const __m256 y0     = _mm256_rsqrt_ps(x);
-  // NR step: y1 = 0.5 * y0 * (3 - x * y0 * y0)
-  const __m256 xy0sq  = _mm256_mul_ps(x, _mm256_mul_ps(y0, y0));
-  return _mm256_mul_ps(_mm256_mul_ps(half, y0), _mm256_sub_ps(three, xy0sq));
+  const __m256 half  = _mm256_set1_ps(0.5f);
+  const __m256 three = _mm256_set1_ps(3.0f);
+  const __m256 zero  = _mm256_setzero_ps();
+  // rsqrt(0) is +inf and 0*inf is NaN. Callers form sqrt(x) as x*rsqrt(x),
+  // so an exact zero must stay zero: sqrt(0)+eps = eps, matching scalar Adam.
+  const __m256 is_zero = _mm256_cmp_ps(x, zero, _CMP_EQ_OQ);
+  const __m256 safe = _mm256_blendv_ps(x, _mm256_set1_ps(1.0f), is_zero);
+  __m256 y = _mm256_rsqrt_ps(safe);
+  const __m256 y2_0 = _mm256_mul_ps(y, y);
+  y = _mm256_mul_ps(_mm256_mul_ps(half, y), _mm256_fnmadd_ps(safe, y2_0, three));
+  const __m256 y2_1 = _mm256_mul_ps(y, y);
+  y = _mm256_mul_ps(_mm256_mul_ps(half, y), _mm256_fnmadd_ps(safe, y2_1, three));
+  return _mm256_blendv_ps(y, zero, is_zero);
 }
 
 // Prefetch distance: 3 cache lines = 192 bytes = 48 floats ahead
@@ -259,7 +268,36 @@ void sgd_update(float* p, const float* g, float* velocity, std::size_t n, SgdCoe
     const __m256 lr = _mm256_set1_ps(c.lr);
     const __m256 wd = _mm256_set1_ps(c.weight_decay);
     std::size_t i = 0;
-    // 32-float unrolled plain SGD
+    for (; i + 64 <= n; i += 64) {
+      if (i + 64 + kPrefetchDist <= n) {
+        prefetch_ahead(p, i + kPrefetchDist);
+        prefetch_ahead(g, i + kPrefetchDist);
+      }
+      __m256 p0 = _mm256_loadu_ps(p + i);
+      __m256 p1 = _mm256_loadu_ps(p + i + 8);
+      __m256 p2 = _mm256_loadu_ps(p + i + 16);
+      __m256 p3 = _mm256_loadu_ps(p + i + 24);
+      __m256 p4 = _mm256_loadu_ps(p + i + 32);
+      __m256 p5 = _mm256_loadu_ps(p + i + 40);
+      __m256 p6 = _mm256_loadu_ps(p + i + 48);
+      __m256 p7 = _mm256_loadu_ps(p + i + 56);
+      __m256 g0 = _mm256_fmadd_ps(wd, p0, _mm256_loadu_ps(g + i));
+      __m256 g1 = _mm256_fmadd_ps(wd, p1, _mm256_loadu_ps(g + i + 8));
+      __m256 g2 = _mm256_fmadd_ps(wd, p2, _mm256_loadu_ps(g + i + 16));
+      __m256 g3 = _mm256_fmadd_ps(wd, p3, _mm256_loadu_ps(g + i + 24));
+      __m256 g4 = _mm256_fmadd_ps(wd, p4, _mm256_loadu_ps(g + i + 32));
+      __m256 g5 = _mm256_fmadd_ps(wd, p5, _mm256_loadu_ps(g + i + 40));
+      __m256 g6 = _mm256_fmadd_ps(wd, p6, _mm256_loadu_ps(g + i + 48));
+      __m256 g7 = _mm256_fmadd_ps(wd, p7, _mm256_loadu_ps(g + i + 56));
+      _mm256_storeu_ps(p + i,      _mm256_fnmadd_ps(lr, g0, p0));
+      _mm256_storeu_ps(p + i + 8,  _mm256_fnmadd_ps(lr, g1, p1));
+      _mm256_storeu_ps(p + i + 16, _mm256_fnmadd_ps(lr, g2, p2));
+      _mm256_storeu_ps(p + i + 24, _mm256_fnmadd_ps(lr, g3, p3));
+      _mm256_storeu_ps(p + i + 32, _mm256_fnmadd_ps(lr, g4, p4));
+      _mm256_storeu_ps(p + i + 40, _mm256_fnmadd_ps(lr, g5, p5));
+      _mm256_storeu_ps(p + i + 48, _mm256_fnmadd_ps(lr, g6, p6));
+      _mm256_storeu_ps(p + i + 56, _mm256_fnmadd_ps(lr, g7, p7));
+    }
     for (; i + 32 <= n; i += 32) {
       if (i + 32 + kPrefetchDist <= n) {
         prefetch_ahead(p, i + kPrefetchDist);

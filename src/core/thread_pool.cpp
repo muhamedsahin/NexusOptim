@@ -10,7 +10,39 @@
 #include <thread>
 #include <vector>
 
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 namespace nexus_optim {
+namespace {
+std::atomic<int> g_caller_only{0};
+
+bool hosted_by_python() noexcept {
+#if defined(_WIN32)
+    static const bool loaded = [] {
+        static const wchar_t* kNames[] = {L"python38.dll", L"python39.dll", L"python310.dll", L"python311.dll",
+                                          L"python312.dll", L"python313.dll", L"python314.dll"};
+        for (const wchar_t* name : kNames) {
+            if (GetModuleHandleW(name) != nullptr) {
+                return true;
+            }
+        }
+        return false;
+    }();
+    return loaded;
+#else
+    return false;
+#endif
+}
+
+bool caller_only() noexcept {
+    return g_caller_only.load(std::memory_order_relaxed) != 0 || hosted_by_python();
+}
+}
 
 struct ThreadPool::Impl {
   struct Slot {
@@ -19,6 +51,10 @@ struct ThreadPool::Impl {
   };
 
   Impl() {
+    if (caller_only()) {
+      helpers_ = 0;
+      return;
+    }
     unsigned hc = std::thread::hardware_concurrency();
     if (hc < 2) {
       helpers_ = 0;
@@ -137,9 +173,21 @@ struct ThreadPool::Impl {
 };
 
 ThreadPool& ThreadPool::instance() {
+  // Python pyd'si kapanirken havuzun muteksi ve is parcaciklari erisim ihlali
+  // yapar. Yorumlayicida havuz yigilmda kalir ve hic yok edilmez.
+  if (caller_only()) {
+    static ThreadPool* leaked = new ThreadPool();
+    return *leaked;
+  }
   static ThreadPool pool;
   return pool;
 }
+
+void ThreadPool::use_caller_thread() noexcept {
+  g_caller_only.store(1, std::memory_order_relaxed);
+}
+
+bool ThreadPool::join_per_call() noexcept { return caller_only(); }
 
 ThreadPool::ThreadPool() : impl_(std::make_unique<Impl>()) {}
 

@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Ayni yapida ikinci kez add_subdirectory edilirse hedefler yeniden tanimlanmaz.
+if(TARGET nexus_optim)
+    return()
+endif()
+
 project(NexusOptim
   VERSION 1.0.0
   DESCRIPTION "Fused, SIMD-accelerated parameter update library"
@@ -31,6 +36,7 @@ set(NEXUS_OPTIM_SOURCES
   src/simd/avx2_kernels.cpp
   src/simd/neon_kernels.cpp
   src/algorithms/instantiate.cpp
+  src/device/hybrid_update.cpp
 )
 
 if(NEXUS_OPTIM_ENABLE_AVX512)
