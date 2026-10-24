@@ -43,7 +43,9 @@ Durum sözlüğü, SIMD seçimi, CUDA, Python iş parçacıkları ve bu makinede
 `adamw.hpp`, `momentum_sgd.hpp` ve `nesterov_sgd.hpp` yalnız ilgili başlığı dahil eder; kendi sınıfları yoktur.
 Üst depodaki `include/nexus/optim/optimizers.hpp` cephesi `AdamW` ve `SGD` bağlar; `RAdam` ve `NAdam` Python eklentisine bağlı değildir.
 
-> 🔬 **Nexus FAZ 3 doğrulaması (24 Ekim 2026):** Nexus'un çok-tensörlü füzyonlu AdamW'i, bu kütüphanenin skaler AdamW yoluyla 1000 adımda **bit-bit aynı**, AVX2 yoluyla ≤ 4.6e-7 bağıl farkla eşleşir. 124M parametrede bu kütüphanenin AVX2 yolu 164 ms/adım ile Nexus foreach yolundan (260 ms) hızlıdır.
+> 🔬 **Nexus FAZ 3 doğrulaması (24 Ekim 2026):** Nexus'un çok-tensörlü füzyonlu AdamW'i, bu kütüphanenin skaler AdamW yoluyla 1000 adımda **bit-bit aynı**, AVX2 yoluyla ≤ 4.6e-7 bağıl farkla eşleşir. 124M parametrede bu kütüphanenin AVX2 yolu 164 ms/adım ile Nexus CPU foreach yolundan (260 ms) hızlıdır.
+>
+> 🎮 Aynı formülün Nexus GPU sürümü (RTX 3070 Laptop, aygıtta global norm kırpma) CPU sürümüyle 1000 adımda yine bit-bit aynıdır ve 124M parametrede **12.1 ms/adım** sürer.
 
 ---
 
