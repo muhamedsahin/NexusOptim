@@ -143,7 +143,12 @@ struct ThreadPool::Impl {
       cursor = next;
     }
     remaining_.store(helpers_, std::memory_order_relaxed);
-    epoch_.fetch_add(1, std::memory_order_release);
+    {
+      // Muteks altinda: isci kosulu kilitle kontrol edip cv_.wait'e girerken artis araya giremez
+      // (aksi halde bildirim kaybolur, isci uyur, cagiran remaining_ != 0'da sonsuza doner).
+      std::lock_guard<std::mutex> lock(mutex_);
+      epoch_.fetch_add(1, std::memory_order_release);
+    }
     cv_.notify_all();
 
     const auto& mine = slots_[static_cast<std::size_t>(helpers_)];
